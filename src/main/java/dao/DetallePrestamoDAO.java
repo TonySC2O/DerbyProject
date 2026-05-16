@@ -11,33 +11,44 @@ import model.DetallePrestamo;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
 public class DetallePrestamoDAO {
 
     // Insertar detalle de préstamo
-    public void insertar(DetallePrestamo detalle) {
+    public int insertar(DetallePrestamo detalle) {
         String sql = """
             INSERT INTO DetallePrestamo (prestamo_id, libro_id, cantidad)
             VALUES (?, ?, ?)
         """;
+        int detalleId = 0;
 
         try (
                 Connection conn = ConexionDB.conectar();
-                PreparedStatement ps = conn.prepareStatement(sql)
+                PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)
         ) {
             ps.setInt(1, detalle.getPrestamoId());
             ps.setInt(2, detalle.getLibroId());
             ps.setInt(3, detalle.getCantidad());
 
             ps.executeUpdate();
-            System.out.println("[OK] Detalle de préstamo insertado");
+            
+            ResultSet rs = ps.getGeneratedKeys();
+            if (rs.next()) {
+                detalleId = rs.getInt(1);
+                detalle.setDetalleId(detalleId);
+            }
+            
+            System.out.println("[OK] Detalle de préstamo insertado con ID: " + detalleId);
 
         } catch (Exception e) {
             System.out.println("[ERROR] Error al insertar detalle: " + e.getMessage());
             e.printStackTrace();
         }
+        
+        return detalleId;
     }
 
     // Obtener detalles por ID de préstamo

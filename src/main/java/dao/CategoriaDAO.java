@@ -11,27 +11,38 @@ import model.Categoria;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
 public class CategoriaDAO {
 
     // Insertar nueva categoría
-    public void insertar(Categoria categoria) {
+    public int insertar(Categoria categoria) {
         String sql = "INSERT INTO Categorias (nombre) VALUES (?)";
+        int categoriaId = 0;
 
         try (
                 Connection conn = ConexionDB.conectar();
-                PreparedStatement ps = conn.prepareStatement(sql)
+                PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)
         ) {
             ps.setString(1, categoria.getNombre());
             ps.executeUpdate();
-            System.out.println("Categoría insertada: " + categoria.getNombre());
+            
+            ResultSet rs = ps.getGeneratedKeys();
+            if (rs.next()) {
+                categoriaId = rs.getInt(1);
+                categoria.setCategoriaId(categoriaId);
+            }
+            
+            System.out.println("[OK] Categoría insertada con ID: " + categoriaId);
 
         } catch (Exception e) {
-            System.out.println("Error al insertar categoría: " + e.getMessage());
+            System.out.println("[ERROR] Error al insertar categoría: " + e.getMessage());
             e.printStackTrace();
         }
+        
+        return categoriaId;
     }
 
     // Actualizar categoría

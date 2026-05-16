@@ -11,21 +11,23 @@ import model.Libro;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
 public class LibroDAO {
 
     // Insertar nuevo libro
-    public void insertar(Libro libro) {
+    public int insertar(Libro libro) {
         String sql = """
             INSERT INTO Libros (titulo, autor, stock, categoria_id)
             VALUES (?, ?, ?, ?)
         """;
+        int libroId = 0;
 
         try (
                 Connection conn = ConexionDB.conectar();
-                PreparedStatement ps = conn.prepareStatement(sql)
+                PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)
         ) {
             ps.setString(1, libro.getTitulo());
             ps.setString(2, libro.getAutor());
@@ -33,12 +35,21 @@ public class LibroDAO {
             ps.setInt(4, libro.getCategoriaId());
 
             ps.executeUpdate();
-            System.out.println("Libro insertado: " + libro.getTitulo());
+            
+            ResultSet rs = ps.getGeneratedKeys();
+            if (rs.next()) {
+                libroId = rs.getInt(1);
+                libro.setLibroId(libroId);
+            }
+            
+            System.out.println("[OK] Libro insertado con ID: " + libroId);
 
         } catch (Exception e) {
-            System.out.println("Error al insertar libro: " + e.getMessage());
+            System.out.println("[ERROR] Error al insertar libro: " + e.getMessage());
             e.printStackTrace();
         }
+        
+        return libroId;
     }
 
     // Actualizar libro

@@ -5,6 +5,8 @@
 package project.derbyproject;
 
 import database.CrearTablas;
+import gui.LoginFrame;
+import javax.swing.SwingUtilities;
 
 /**
  *
@@ -17,5 +19,11 @@ public class DerbyProject {
         System.out.println("Inicializando base de datos...");
         CrearTablas.crear();
         System.out.println("Base de datos lista.\n");
+
+        // Lanzar interfaz gráfica
+        SwingUtilities.invokeLater(() -> {
+            LoginFrame loginFrame = new LoginFrame();
+            loginFrame.setVisible(true);
+        });
     }
 }

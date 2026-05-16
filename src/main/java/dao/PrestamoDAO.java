@@ -12,6 +12,7 @@ import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Statement;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,27 +20,37 @@ import java.util.List;
 public class PrestamoDAO {
 
     // Registrar nuevo préstamo
-    public void registrarPrestamo(Prestamo prestamo) {
+    public int registrarPrestamo(Prestamo prestamo) {
         String sql = """
             INSERT INTO Prestamos (usuario_id, fecha_prestamo, estado)
             VALUES (?, ?, ?)
         """;
+        int prestamoId = 0;
 
         try (
                 Connection conn = ConexionDB.conectar();
-                PreparedStatement ps = conn.prepareStatement(sql)
+                PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)
         ) {
             ps.setInt(1, prestamo.getUsuarioId());
             ps.setDate(2, Date.valueOf(prestamo.getFechaPrestamo()));
             ps.setString(3, prestamo.getEstado());
 
             ps.executeUpdate();
-            System.out.println("[OK] Préstamo registrado para usuario: " + prestamo.getUsuarioId());
+            
+            ResultSet rs = ps.getGeneratedKeys();
+            if (rs.next()) {
+                prestamoId = rs.getInt(1);
+                prestamo.setPrestamoId(prestamoId);
+            }
+            
+            System.out.println("[OK] Préstamo registrado con ID: " + prestamoId);
 
         } catch (Exception e) {
             System.out.println("[ERROR] Error al registrar préstamo: " + e.getMessage());
             e.printStackTrace();
         }
+        
+        return prestamoId;
     }
 
     // Registrar devolución (actualizar fecha y estado)

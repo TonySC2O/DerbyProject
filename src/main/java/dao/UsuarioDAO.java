@@ -15,33 +15,46 @@ import model.Usuario;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
 public class UsuarioDAO {
 
     // Insertar nuevo usuario
-    public void insertar(Usuario usuario) {
+    public int insertar(Usuario usuario) {
         String sql = """
             INSERT INTO Usuarios (nombre, correo, telefono)
             VALUES (?, ?, ?)
         """;
+        
+        int usuarioId = 0;
 
         try (
                 Connection conn = ConexionDB.conectar();
-                PreparedStatement ps = conn.prepareStatement(sql)
+                PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)
         ) {
             ps.setString(1, usuario.getNombre());
             ps.setString(2, usuario.getCorreo());
             ps.setString(3, usuario.getTelefono());
 
             ps.executeUpdate();
-            System.out.println("[OK] Usuario insertado: " + usuario.getNombre());
+            
+            // Obtener el ID generado
+            ResultSet rs = ps.getGeneratedKeys();
+            if (rs.next()) {
+                usuarioId = rs.getInt(1);
+                usuario.setUsuarioId(usuarioId);
+            }
+            
+            System.out.println("[OK] Usuario insertado con ID: " + usuarioId);
 
         } catch (Exception e) {
             System.out.println("[ERROR] Error al insertar usuario: " + e.getMessage());
             e.printStackTrace();
         }
+        
+        return usuarioId;
     }
 
     // Actualizar usuario existente
@@ -102,10 +115,11 @@ public class UsuarioDAO {
 
             if (rs.next()) {
                 usuario = new Usuario(
-                                                rs.getString("nombre"),
+                        rs.getString("nombre"),
                         rs.getString("correo"),
                         rs.getString("telefono")
                 );
+                usuario.setUsuarioId(rs.getInt("usuario_id"));
             }
 
         } catch (Exception e) {
@@ -129,10 +143,11 @@ public class UsuarioDAO {
 
             while (rs.next()) {
                 Usuario usuario = new Usuario(
-                                                rs.getString("nombre"),
+                        rs.getString("nombre"),
                         rs.getString("correo"),
                         rs.getString("telefono")
                 );
+                usuario.setUsuarioId(rs.getInt("usuario_id"));
                 usuarios.add(usuario);
             }
 
@@ -158,10 +173,11 @@ public class UsuarioDAO {
 
             while (rs.next()) {
                 Usuario usuario = new Usuario(
-                                                rs.getString("nombre"),
+                        rs.getString("nombre"),
                         rs.getString("correo"),
                         rs.getString("telefono")
                 );
+                usuario.setUsuarioId(rs.getInt("usuario_id"));
                 usuarios.add(usuario);
             }
 
