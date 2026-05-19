@@ -2,3 +2,5 @@ target/
 nbproject/private/
 *.class
 *.log
+application.properties
+src/main/resources/application.properties

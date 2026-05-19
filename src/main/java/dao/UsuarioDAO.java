@@ -15,6 +15,7 @@ import model.Usuario;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
@@ -84,7 +85,7 @@ public class UsuarioDAO {
     }
 
     // Eliminar usuario
-    public void eliminar(int usuarioId) {
+    public String eliminar(int usuarioId) {
         String sql = "DELETE FROM Usuarios WHERE usuario_id = ?";
 
         try (
@@ -94,10 +95,19 @@ public class UsuarioDAO {
             ps.setInt(1, usuarioId);
             ps.executeUpdate();
             System.out.println("[OK] Usuario eliminado con ID: " + usuarioId);
+            return null;
 
+        } catch (SQLException e) {
+            if ("23503".equals(e.getSQLState())) {
+                return "No se puede eliminar el usuario porque tiene préstamos asociados.";
+            }
+            System.out.println("[ERROR] Error al eliminar usuario: " + e.getMessage());
+            e.printStackTrace();
+            return "Error al eliminar usuario: " + e.getMessage();
         } catch (Exception e) {
             System.out.println("[ERROR] Error al eliminar usuario: " + e.getMessage());
             e.printStackTrace();
+            return "Error al eliminar usuario: " + e.getMessage();
         }
     }
 
@@ -159,16 +169,16 @@ public class UsuarioDAO {
         return usuarios;
     }
 
-    // Buscar usuario por nombre
+    // Buscar usuario por nombre (match exacto)
     public List<Usuario> buscarPorNombre(String nombre) {
         List<Usuario> usuarios = new ArrayList<>();
-        String sql = "SELECT * FROM Usuarios WHERE UPPER(nombre) LIKE UPPER(?)";
+        String sql = "SELECT * FROM Usuarios WHERE UPPER(nombre) = UPPER(?)";
 
         try (
                 Connection conn = ConexionDB.conectar();
                 PreparedStatement ps = conn.prepareStatement(sql)
         ) {
-            ps.setString(1, "%" + nombre + "%");
+            ps.setString(1, nombre);
             ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {

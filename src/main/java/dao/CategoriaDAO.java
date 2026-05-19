@@ -11,6 +11,7 @@ import model.Categoria;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,7 +19,7 @@ import java.util.List;
 public class CategoriaDAO {
 
     // Insertar nueva categoría
-    public int insertar(Categoria categoria) {
+    public String insertar(Categoria categoria) {
         String sql = "INSERT INTO Categorias (nombre) VALUES (?)";
         int categoriaId = 0;
 
@@ -36,17 +37,24 @@ public class CategoriaDAO {
             }
             
             System.out.println("[OK] Categoría insertada con ID: " + categoriaId);
+            return null; // Éxito
 
-        } catch (Exception e) {
+        } catch (SQLException e) {
+            // Detectar violación de UNIQUE constraint (SQLState 23505)
+            if ("23505".equals(e.getSQLState())) {
+                String errorMsg = "Ya existe una categoría con ese nombre.";
+                System.out.println("[UNIQUE_ERROR] " + errorMsg);
+                return errorMsg;
+            }
+            
             System.out.println("[ERROR] Error al insertar categoría: " + e.getMessage());
             e.printStackTrace();
+            return "Error al insertar categoría: " + e.getMessage();
         }
-        
-        return categoriaId;
     }
 
     // Actualizar categoría
-    public void actualizar(Categoria categoria) {
+    public String actualizar(Categoria categoria) {
         String sql = "UPDATE Categorias SET nombre = ? WHERE categoria_id = ?";
 
         try (
@@ -57,15 +65,24 @@ public class CategoriaDAO {
             ps.setInt(2, categoria.getCategoriaId());
             ps.executeUpdate();
             System.out.println("Categoría actualizada: " + categoria.getNombre());
+            return null; // Éxito
 
-        } catch (Exception e) {
+        } catch (SQLException e) {
+            // Detectar violación de UNIQUE constraint
+            if ("23505".equals(e.getSQLState())) {
+                String errorMsg = "Ya existe una categoría con ese nombre.";
+                System.out.println("[UNIQUE_ERROR] " + errorMsg);
+                return errorMsg;
+            }
+            
             System.out.println("Error al actualizar categoría: " + e.getMessage());
             e.printStackTrace();
+            return "Error al actualizar categoría: " + e.getMessage();
         }
     }
 
     // Eliminar categoría
-    public void eliminar(int categoriaId) {
+    public String eliminar(int categoriaId) {
         String sql = "DELETE FROM Categorias WHERE categoria_id = ?";
 
         try (
@@ -75,10 +92,19 @@ public class CategoriaDAO {
             ps.setInt(1, categoriaId);
             ps.executeUpdate();
             System.out.println("Categoría eliminada con ID: " + categoriaId);
+            return null;
 
+        } catch (SQLException e) {
+            if ("23503".equals(e.getSQLState())) {
+                return "No se puede eliminar la categoría porque hay libros asociados.";
+            }
+            System.out.println("Error al eliminar categoría: " + e.getMessage());
+            e.printStackTrace();
+            return "Error al eliminar categoría: " + e.getMessage();
         } catch (Exception e) {
             System.out.println("Error al eliminar categoría: " + e.getMessage());
             e.printStackTrace();
+            return "Error al eliminar categoría: " + e.getMessage();
         }
     }
 
@@ -112,7 +138,7 @@ public class CategoriaDAO {
     // Obtener todas las categorías
     public List<Categoria> obtenerTodas() {
         List<Categoria> categorias = new ArrayList<>();
-        String sql = "SELECT * FROM Categorias ORDER BY nombre";
+        String sql = "SELECT * FROM Categorias ORDER BY categoria_id ASC";
 
         try (
                 Connection conn = ConexionDB.conectar();

@@ -16,6 +16,7 @@ import java.util.List;
  */
 public class LibrosFrame extends JFrame {
 
+    private JTextField idField;
     private JTextField tituloField;
     private JTextField autorField;
     private JTextField stockField;
@@ -54,10 +55,33 @@ public class LibrosFrame extends JFrame {
         titleLabel.setForeground(Color.WHITE);
         topPanel.add(titleLabel);
 
+        // Panel de búsqueda (separado)
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        searchPanel.setBackground(new Color(230, 230, 230));
+        searchPanel.setBorder(BorderFactory.createTitledBorder("Búsqueda"));
+        
+        searchPanel.add(new JLabel("Buscar por título:"));
+        buscarField = new JTextField(15);
+        searchPanel.add(buscarField);
+        
+        JButton buscarButton = new JButton("Buscar");
+        buscarButton.addActionListener(e -> buscarLibros());
+        searchPanel.add(buscarButton);
+        
+        JButton recargarButton = new JButton("Recargar");
+        recargarButton.addActionListener(e -> cargarLibros());
+        searchPanel.add(recargarButton);
+
         // Panel de entrada
         JPanel inputPanel = new JPanel(new GridLayout(5, 2, 10, 10));
-        inputPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        inputPanel.setBorder(BorderFactory.createTitledBorder("Información del Libro"));
         inputPanel.setBackground(new Color(245, 245, 245));
+
+        inputPanel.add(new JLabel("ID:"));
+        idField = new JTextField();
+        idField.setEditable(false);
+        idField.setBackground(new Color(200, 200, 200));
+        inputPanel.add(idField);
 
         inputPanel.add(new JLabel("Título:"));
         tituloField = new JTextField();
@@ -75,12 +99,8 @@ public class LibrosFrame extends JFrame {
         categoriaCombo = new JComboBox<>();
         inputPanel.add(categoriaCombo);
 
-        inputPanel.add(new JLabel("Buscar por título:"));
-        buscarField = new JTextField();
-        inputPanel.add(buscarField);
-
         // Panel de botones
-        JPanel buttonPanel = new JPanel();
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 5));
         buttonPanel.setBackground(new Color(245, 245, 245));
 
         JButton guardarButton = new JButton("Guardar");
@@ -95,17 +115,15 @@ public class LibrosFrame extends JFrame {
         eliminarButton.addActionListener(e -> eliminarLibro());
         buttonPanel.add(eliminarButton);
 
-        JButton buscarButton = new JButton("Buscar");
-        buscarButton.addActionListener(e -> buscarLibros());
-        buttonPanel.add(buscarButton);
-
         JButton limpiarButton = new JButton("Limpiar");
         limpiarButton.addActionListener(e -> limpiar());
         buttonPanel.add(limpiarButton);
 
-        JButton recargarButton = new JButton("Recargar");
-        recargarButton.addActionListener(e -> cargarLibros());
-        buttonPanel.add(recargarButton);
+        // Panel de entrada completo
+        JPanel entryCompletePanel = new JPanel(new BorderLayout());
+        entryCompletePanel.setBackground(new Color(245, 245, 245));
+        entryCompletePanel.add(inputPanel, BorderLayout.CENTER);
+        entryCompletePanel.add(buttonPanel, BorderLayout.SOUTH);
 
         // Panel tabla
         String[] columnNames = {"ID", "Título", "Autor", "Stock", "Categoría"};
@@ -127,7 +145,6 @@ public class LibrosFrame extends JFrame {
 
         JScrollPane scrollPane = new JScrollPane(librosTable);
         
-        
         // Botón de volver
         JPanel lowPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         lowPanel.setBackground(new Color(245, 245, 245));
@@ -141,8 +158,8 @@ public class LibrosFrame extends JFrame {
         // Panel norte
         JPanel northPanel = new JPanel(new BorderLayout());
         northPanel.add(topPanel, BorderLayout.NORTH);
-        northPanel.add(inputPanel, BorderLayout.CENTER);
-        northPanel.add(buttonPanel, BorderLayout.SOUTH);
+        northPanel.add(searchPanel, BorderLayout.CENTER);
+        northPanel.add(entryCompletePanel, BorderLayout.SOUTH);
 
         mainPanel.add(northPanel, BorderLayout.NORTH);
         mainPanel.add(scrollPane, BorderLayout.CENTER);
@@ -177,6 +194,7 @@ public class LibrosFrame extends JFrame {
     }
 
     private void cargarLibros() {
+        buscarField.setText("");
         tableModel.setRowCount(0);
         List<Libro> libros = libroDAO.obtenerTodos();
 
@@ -258,9 +276,14 @@ public class LibrosFrame extends JFrame {
 
         int confirm = JOptionPane.showConfirmDialog(this, "¿Desea eliminar este libro?", "Confirmar", JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
-            libroDAO.eliminar(libroSeleccionado.getLibroId());
-            limpiar();
-            cargarLibros();
+            String error = libroDAO.eliminar(libroSeleccionado.getLibroId());
+            if (error == null) {
+                limpiar();
+                cargarLibros();
+                JOptionPane.showMessageDialog(this, "Libro eliminado exitosamente", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this, error, "Error al eliminar libro", JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
 
@@ -275,6 +298,11 @@ public class LibrosFrame extends JFrame {
         tableModel.setRowCount(0);
         List<Libro> libros = libroDAO.buscarPorTitulo(titulo);
 
+        if (libros.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No se encontraron libros con ese título", "Búsqueda", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
         for (Libro libro : libros) {
             Categoria cat = categoriaDAO.obtenerPorId(libro.getCategoriaId());
             String nomCategoria = cat != null ? cat.getNombre() : "N/A";
@@ -288,6 +316,8 @@ public class LibrosFrame extends JFrame {
             };
             tableModel.addRow(row);
         }
+        
+        JOptionPane.showMessageDialog(this, "Se encontraron " + libros.size() + " resultado(s)", "Búsqueda", JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void seleccionarFila() {
@@ -297,6 +327,7 @@ public class LibrosFrame extends JFrame {
             libroSeleccionado = libroDAO.obtenerPorId(id);
 
             if (libroSeleccionado != null) {
+                idField.setText(String.valueOf(id));
                 tituloField.setText(libroSeleccionado.getTitulo());
                 autorField.setText(libroSeleccionado.getAutor());
                 stockField.setText(String.valueOf(libroSeleccionado.getStock()));
@@ -311,6 +342,7 @@ public class LibrosFrame extends JFrame {
     }
 
     private void limpiar() {
+        idField.setText("");
         tituloField.setText("");
         autorField.setText("");
         stockField.setText("");

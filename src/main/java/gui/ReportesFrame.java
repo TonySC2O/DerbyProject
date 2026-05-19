@@ -53,6 +53,10 @@ public class ReportesFrame extends JFrame {
         prestamosActivosButton.addActionListener(e -> mostrarPrestamosActivos());
         buttonPanel.add(prestamosActivosButton);
 
+        JButton prestamosCompletadosButton = new JButton("Préstamos Completados");
+        prestamosCompletadosButton.addActionListener(e -> mostrarPrestamosCompletados());
+        buttonPanel.add(prestamosCompletadosButton);
+
         JButton librosDisponiblesButton = new JButton("Libros Disponibles");
         librosDisponiblesButton.addActionListener(e -> mostrarLibrosDisponibles());
         buttonPanel.add(librosDisponiblesButton);
@@ -117,8 +121,8 @@ public class ReportesFrame extends JFrame {
     }
 
     private void mostrarPrestamosActivos() {
-        tableModel.setColumnCount(4);
-        tableModel.setColumnIdentifiers(new String[]{"ID", "Usuario", "Fecha Préstamo", "Estado"});
+        tableModel.setColumnCount(5);
+        tableModel.setColumnIdentifiers(new String[]{"ID", "Usuario", "Fecha Préstamo", "Fecha Devolución", "Estado"});
         tableModel.setRowCount(0);
 
         List<Prestamo> prestamos = prestamoDAO.obtenerActivos();
@@ -131,12 +135,41 @@ public class ReportesFrame extends JFrame {
                     prestamo.getPrestamoId(),
                     nomUsuario,
                     prestamo.getFechaPrestamo(),
+                    prestamo.getFechaDevolucion() != null ? prestamo.getFechaDevolucion() : "Pendiente",
                     prestamo.getEstado()
             };
             tableModel.addRow(row);
         }
 
         JOptionPane.showMessageDialog(this, "Mostrando " + prestamos.size() + " préstamos activos", "Reporte", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void mostrarPrestamosCompletados() {
+        tableModel.setColumnCount(5);
+        tableModel.setColumnIdentifiers(new String[]{"ID", "Usuario", "Fecha Préstamo", "Fecha Devolución", "Estado"});
+        tableModel.setRowCount(0);
+
+        List<Prestamo> todosPrestamos = prestamoDAO.obtenerTodos();
+        int completados = 0;
+
+        for (Prestamo prestamo : todosPrestamos) {
+            if ("DEVUELTO".equals(prestamo.getEstado())) {
+                Usuario usuario = usuarioDAO.obtenerPorId(prestamo.getUsuarioId());
+                String nomUsuario = usuario != null ? usuario.getNombre() : "N/A";
+
+                Object[] row = {
+                        prestamo.getPrestamoId(),
+                        nomUsuario,
+                        prestamo.getFechaPrestamo(),
+                        prestamo.getFechaDevolucion() != null ? prestamo.getFechaDevolucion() : "N/A",
+                        prestamo.getEstado()
+                };
+                tableModel.addRow(row);
+                completados++;
+            }
+        }
+
+        JOptionPane.showMessageDialog(this, "Mostrando " + completados + " préstamos completados", "Reporte", JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void mostrarLibrosDisponibles() {

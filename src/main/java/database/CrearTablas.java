@@ -26,7 +26,7 @@ public class CrearTablas {
             try {
                 String usuarios = """
                     CREATE TABLE Usuarios (
-                        usuario_id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+                        usuario_id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1),
                         nombre VARCHAR(100) NOT NULL,
                         correo VARCHAR(100) NOT NULL,
                         telefono VARCHAR(20)
@@ -42,7 +42,7 @@ public class CrearTablas {
             try {
                 String categorias = """
                     CREATE TABLE Categorias (
-                        categoria_id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+                        categoria_id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1),
                         nombre VARCHAR(50) NOT NULL UNIQUE
                     )
                 """;
@@ -56,7 +56,7 @@ public class CrearTablas {
             try {
                 String libros = """
                     CREATE TABLE Libros (
-                        libro_id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+                        libro_id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1),
                         titulo VARCHAR(150) NOT NULL,
                         autor VARCHAR(100) NOT NULL,
                         stock INT NOT NULL CHECK (stock >= 0),
@@ -74,7 +74,7 @@ public class CrearTablas {
             try {
                 String prestamos = """
                     CREATE TABLE Prestamos (
-                        prestamo_id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+                        prestamo_id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1),
                         usuario_id INT NOT NULL,
                         fecha_prestamo DATE NOT NULL,
                         fecha_devolucion DATE,
@@ -92,7 +92,7 @@ public class CrearTablas {
             try {
                 String detallePrestamo = """
                     CREATE TABLE DetallePrestamo (
-                        detalle_id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+                        detalle_id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1),
                         prestamo_id INT NOT NULL,
                         libro_id INT NOT NULL,
                         cantidad INT NOT NULL CHECK (cantidad > 0),

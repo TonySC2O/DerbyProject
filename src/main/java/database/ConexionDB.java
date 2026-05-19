@@ -33,4 +33,18 @@ public class ConexionDB {
             return null;
         }
     }
+
+    // Shutdown controlado de Derby Embedded
+    public static void shutdown() {
+        try {
+            DriverManager.getConnection("jdbc:derby:;shutdown=true");
+        } catch (Exception e) {
+            // Derby lanza una excepción al hacer shutdown (es esperado)
+            if (e.getMessage() != null && e.getMessage().contains("shutdown")) {
+                System.out.println("[OK] Derby Embedded shut down correctamente");
+            } else {
+                System.out.println("Advertencia en shutdown: " + e.getMessage());
+            }
+        }
+    }
 }

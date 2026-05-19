@@ -4,6 +4,7 @@
 
 package project.derbyproject;
 
+import database.ConexionDB;
 import database.CrearTablas;
 import gui.LoginFrame;
 import javax.swing.SwingUtilities;
@@ -19,6 +20,13 @@ public class DerbyProject {
         System.out.println("Inicializando base de datos...");
         CrearTablas.crear();
         System.out.println("Base de datos lista.\n");
+
+        // Agregar hook de shutdown para cerrar Derby correctamente
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("\nCerrando aplicación...");
+            ConexionDB.shutdown();
+            System.out.println("Aplicación cerrada.");
+        }));
 
         // Lanzar interfaz gráfica
         SwingUtilities.invokeLater(() -> {

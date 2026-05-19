@@ -14,7 +14,9 @@ import java.util.List;
  */
 public class CategoriesFrame extends JFrame {
 
+    private JTextField idField;
     private JTextField nombreField;
+    private JTextField buscarField;
     private JTable categoriasTable;
     private DefaultTableModel tableModel;
     private CategoriaDAO categoriaDAO;
@@ -45,17 +47,40 @@ public class CategoriesFrame extends JFrame {
         titleLabel.setForeground(Color.WHITE);
         topPanel.add(titleLabel);
 
+        // Panel de búsqueda (separado)
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        searchPanel.setBackground(new Color(230, 230, 230));
+        searchPanel.setBorder(BorderFactory.createTitledBorder("Búsqueda"));
+        
+        searchPanel.add(new JLabel("Buscar por nombre:"));
+        buscarField = new JTextField(15);
+        searchPanel.add(buscarField);
+        
+        JButton buscarButton = new JButton("Buscar");
+        buscarButton.addActionListener(e -> buscarCategorias());
+        searchPanel.add(buscarButton);
+        
+        JButton recargarButton = new JButton("Recargar");
+        recargarButton.addActionListener(e -> cargarCategorias());
+        searchPanel.add(recargarButton);
+
         // Panel de entrada
-        JPanel inputPanel = new JPanel(new GridLayout(1, 2, 10, 10));
-        inputPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        JPanel inputPanel = new JPanel(new GridLayout(3, 2, 10, 10));
+        inputPanel.setBorder(BorderFactory.createTitledBorder("Información de la Categoría"));
         inputPanel.setBackground(new Color(245, 245, 245));
+
+        inputPanel.add(new JLabel("ID:"));
+        idField = new JTextField();
+        idField.setEditable(false);
+        idField.setBackground(new Color(200, 200, 200));
+        inputPanel.add(idField);
 
         inputPanel.add(new JLabel("Nombre:"));
         nombreField = new JTextField();
         inputPanel.add(nombreField);
 
         // Panel de botones
-        JPanel buttonPanel = new JPanel();
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 5));
         buttonPanel.setBackground(new Color(245, 245, 245));
 
         JButton guardarButton = new JButton("Guardar");
@@ -73,6 +98,12 @@ public class CategoriesFrame extends JFrame {
         JButton limpiarButton = new JButton("Limpiar");
         limpiarButton.addActionListener(e -> limpiar());
         buttonPanel.add(limpiarButton);
+
+        // Panel de entrada completo
+        JPanel entryCompletePanel = new JPanel(new BorderLayout());
+        entryCompletePanel.setBackground(new Color(245, 245, 245));
+        entryCompletePanel.add(inputPanel, BorderLayout.CENTER);
+        entryCompletePanel.add(buttonPanel, BorderLayout.SOUTH);
 
         // Panel tabla
         String[] columnNames = {"ID", "Nombre"};
@@ -94,7 +125,6 @@ public class CategoriesFrame extends JFrame {
 
         JScrollPane scrollPane = new JScrollPane(categoriasTable);
         
-        
         // Botón de volver
         JPanel lowPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         lowPanel.setBackground(new Color(245, 245, 245));
@@ -108,8 +138,8 @@ public class CategoriesFrame extends JFrame {
         // Panel norte
         JPanel northPanel = new JPanel(new BorderLayout());
         northPanel.add(topPanel, BorderLayout.NORTH);
-        northPanel.add(inputPanel, BorderLayout.CENTER);
-        northPanel.add(buttonPanel, BorderLayout.SOUTH);
+        northPanel.add(searchPanel, BorderLayout.CENTER);
+        northPanel.add(entryCompletePanel, BorderLayout.SOUTH);
 
         mainPanel.add(northPanel, BorderLayout.NORTH);
         mainPanel.add(scrollPane, BorderLayout.CENTER);
@@ -136,6 +166,7 @@ public class CategoriesFrame extends JFrame {
     }
 
     private void cargarCategorias() {
+        buscarField.setText("");
         tableModel.setRowCount(0);
         List<Categoria> categorias = categoriaDAO.obtenerTodas();
 
@@ -148,6 +179,36 @@ public class CategoriesFrame extends JFrame {
         }
     }
 
+    private void buscarCategorias() {
+        String nombre = buscarField.getText().trim();
+
+        if (nombre.isEmpty()) {
+            cargarCategorias();
+            return;
+        }
+
+        tableModel.setRowCount(0);
+        List<Categoria> categorias = categoriaDAO.obtenerTodas();
+        int resultados = 0;
+
+        for (Categoria categoria : categorias) {
+            if (categoria.getNombre().equalsIgnoreCase(nombre)) {
+                Object[] row = {
+                        categoria.getCategoriaId(),
+                        categoria.getNombre()
+                };
+                tableModel.addRow(row);
+                resultados++;
+            }
+        }
+        
+        if (resultados == 0) {
+            JOptionPane.showMessageDialog(this, "No se encontraron categorías con ese nombre", "Búsqueda", JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            JOptionPane.showMessageDialog(this, "Se encontraron " + resultados + " resultado(s)", "Búsqueda", JOptionPane.INFORMATION_MESSAGE);
+        }
+    }
+
     private void guardarCategoria() {
         String nombre = nombreField.getText().trim();
 
@@ -157,10 +218,15 @@ public class CategoriesFrame extends JFrame {
         }
 
         Categoria categoria = new Categoria(nombre);
-        categoriaDAO.insertar(categoria);
-        limpiar();
-        cargarCategorias();
-        JOptionPane.showMessageDialog(this, "Categoría guardada", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+        String error = categoriaDAO.insertar(categoria);
+        
+        if (error == null) {
+            limpiar();
+            cargarCategorias();
+            JOptionPane.showMessageDialog(this, "Categoría guardada exitosamente", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            JOptionPane.showMessageDialog(this, error, "Error al guardar categoría", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private void actualizarCategoria() {
@@ -177,10 +243,15 @@ public class CategoriesFrame extends JFrame {
         }
 
         categoriaSeleccionada.setNombre(nombre);
-        categoriaDAO.actualizar(categoriaSeleccionada);
-        limpiar();
-        cargarCategorias();
-        JOptionPane.showMessageDialog(this, "Categoría actualizada", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+        String error = categoriaDAO.actualizar(categoriaSeleccionada);
+        
+        if (error == null) {
+            limpiar();
+            cargarCategorias();
+            JOptionPane.showMessageDialog(this, "Categoría actualizada exitosamente", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            JOptionPane.showMessageDialog(this, error, "Error al actualizar categoría", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private void eliminarCategoria() {
@@ -191,9 +262,14 @@ public class CategoriesFrame extends JFrame {
 
         int confirm = JOptionPane.showConfirmDialog(this, "¿Desea eliminar esta categoría?", "Confirmar", JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
-            categoriaDAO.eliminar(categoriaSeleccionada.getCategoriaId());
-            limpiar();
-            cargarCategorias();
+            String error = categoriaDAO.eliminar(categoriaSeleccionada.getCategoriaId());
+            if (error == null) {
+                limpiar();
+                cargarCategorias();
+                JOptionPane.showMessageDialog(this, "Categoría eliminada exitosamente", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this, error, "Error al eliminar categoría", JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
 
@@ -203,11 +279,13 @@ public class CategoriesFrame extends JFrame {
             int id = (int) tableModel.getValueAt(row, 0);
             String nombre = (String) tableModel.getValueAt(row, 1);
             categoriaSeleccionada = new Categoria(id, nombre);
+            idField.setText(String.valueOf(id));
             nombreField.setText(nombre);
         }
     }
 
     private void limpiar() {
+        idField.setText("");
         nombreField.setText("");
         categoriaSeleccionada = null;
         categoriasTable.clearSelection();

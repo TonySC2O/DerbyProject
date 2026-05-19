@@ -8,6 +8,7 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.time.LocalDate;
 import java.util.List;
+import service.PrestamoService;
 
 /**
  *
@@ -35,6 +36,10 @@ public class PrestamosFrame extends JFrame {
         libroDAO = new LibroDAO();
         prestamoDAO = new PrestamoDAO();
         detalleDAO = new DetallePrestamoDAO();
+        
+        // Servicio transaccional
+        
+        
 
         initComponents();
         cargarUsuarios();
@@ -54,8 +59,8 @@ public class PrestamosFrame extends JFrame {
         titleLabel.setForeground(Color.WHITE);
         topPanel.add(titleLabel);
 
-        // Panel de entrada
-        JPanel inputPanel = new JPanel(new GridLayout(2, 4, 10, 10));
+        // Panel de entrada (mejorado)
+        JPanel inputPanel = new JPanel(new GridLayout(4, 2, 10, 10));
         inputPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
         inputPanel.setBackground(new Color(245, 245, 245));
 
@@ -70,11 +75,6 @@ public class PrestamosFrame extends JFrame {
         inputPanel.add(new JLabel("Cantidad:"));
         cantidadSpinner = new JSpinner(new SpinnerNumberModel(1, 1, 100, 1));
         inputPanel.add(cantidadSpinner);
-
-        inputPanel.add(new JLabel(""));
-        inputPanel.add(new JLabel(""));
-        inputPanel.add(new JLabel(""));
-        inputPanel.add(new JLabel(""));
 
         // Panel de botones
         JPanel buttonPanel = new JPanel();
@@ -198,20 +198,15 @@ public class PrestamosFrame extends JFrame {
         }
 
         try {
-            // Registrar préstamo
-            Prestamo prestamo = new Prestamo(usuario.getUsuarioId(), LocalDate.now(), "ACTIVO");
-            int prestamoId = prestamoDAO.registrarPrestamo(prestamo);
-
-            // Registrar detalle
-            DetallePrestamo detalle = new DetallePrestamo(prestamoId, libro.getLibroId(), cantidad);
-            detalleDAO.insertar(detalle);
-
-            // Reducir stock
-            libroDAO.reducirStock(libro.getLibroId(), cantidad);
-
-            cargarLibros();
-            cargarPrestamos();
-            JOptionPane.showMessageDialog(this, "Préstamo registrado", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+            PrestamoService service = new PrestamoService();
+            boolean ok = service.realizarPrestamoTransaccional(usuario.getUsuarioId(), libro.getLibroId(), cantidad);
+            if (ok) {
+                cargarLibros();
+                cargarPrestamos();
+                JOptionPane.showMessageDialog(this, "Préstamo registrado (transaccional)", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this, "No se pudo completar el préstamo (se hizo rollback)", "Error", JOptionPane.ERROR_MESSAGE);
+            }
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }

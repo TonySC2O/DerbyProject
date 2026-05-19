@@ -19,6 +19,7 @@ public class UsuariosFrame extends JFrame {
     private JTextField nombreField;
     private JTextField correoField;
     private JTextField telefonoField;
+    private JTextField idField;
     private JTextField buscarField;
     private JTable usuariosTable;
     private DefaultTableModel tableModel;
@@ -51,10 +52,33 @@ public class UsuariosFrame extends JFrame {
         titleLabel.setForeground(Color.WHITE);
         topPanel.add(titleLabel);
 
-        // Panel de entrada de datos
-        JPanel inputPanel = new JPanel(new GridLayout(4, 2, 10, 10));
-        inputPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        // Panel de búsqueda (separado)
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        searchPanel.setBackground(new Color(230, 230, 230));
+        searchPanel.setBorder(BorderFactory.createTitledBorder("Búsqueda"));
+        
+        searchPanel.add(new JLabel("Buscar por nombre:"));
+        buscarField = new JTextField(20);
+        searchPanel.add(buscarField);
+        
+        JButton buscarButton = new JButton("Buscar");
+        buscarButton.addActionListener(e -> buscarUsuarios());
+        searchPanel.add(buscarButton);
+        
+        JButton recargarButton = new JButton("Recargar");
+        recargarButton.addActionListener(e -> cargarUsuarios());
+        searchPanel.add(recargarButton);
+
+        // Panel de entrada de datos (no editable el ID)
+        JPanel inputPanel = new JPanel(new GridLayout(5, 2, 10, 10));
+        inputPanel.setBorder(BorderFactory.createTitledBorder("Información del Usuario"));
         inputPanel.setBackground(new Color(245, 245, 245));
+
+        inputPanel.add(new JLabel("ID:"));
+        idField = new JTextField();
+        idField.setEditable(false);
+        idField.setBackground(new Color(200, 200, 200));
+        inputPanel.add(idField);
 
         inputPanel.add(new JLabel("Nombre:"));
         nombreField = new JTextField();
@@ -68,12 +92,8 @@ public class UsuariosFrame extends JFrame {
         telefonoField = new JTextField();
         inputPanel.add(telefonoField);
 
-        inputPanel.add(new JLabel("Buscar por nombre:"));
-        buscarField = new JTextField();
-        inputPanel.add(buscarField);
-
-        // Panel de botones
-        JPanel buttonPanel = new JPanel();
+        // Panel de botones de CRUD
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 5));
         buttonPanel.setBackground(new Color(245, 245, 245));
 
         JButton guardarButton = new JButton("Guardar");
@@ -88,23 +108,9 @@ public class UsuariosFrame extends JFrame {
         eliminarButton.addActionListener(e -> eliminarUsuario());
         buttonPanel.add(eliminarButton);
 
-        JButton buscarButton = new JButton("Buscar");
-        buscarButton.addActionListener(e -> buscarUsuarios());
-        buttonPanel.add(buscarButton);
-
         JButton limpiarButton = new JButton("Limpiar");
         limpiarButton.addActionListener(e -> limpiar());
         buttonPanel.add(limpiarButton);
-
-        JButton recargarButton = new JButton("Recargar");
-        recargarButton.addActionListener(e -> cargarUsuarios());
-        buttonPanel.add(recargarButton);
-
-        // Panel norte (con título, entrada y botones)
-        JPanel northPanel = new JPanel(new BorderLayout());
-        northPanel.add(topPanel, BorderLayout.NORTH);
-        northPanel.add(inputPanel, BorderLayout.CENTER);
-        northPanel.add(buttonPanel, BorderLayout.SOUTH);
 
         // Panel de tabla
         String[] columnNames = {"ID", "Nombre", "Correo", "Teléfono"};
@@ -143,7 +149,18 @@ public class UsuariosFrame extends JFrame {
 
         JScrollPane scrollPane = new JScrollPane(usuariosTable);
         
-        
+        // Panel de entrada completo
+        JPanel entryCompletePanel = new JPanel(new BorderLayout());
+        entryCompletePanel.setBackground(new Color(245, 245, 245));
+        entryCompletePanel.add(inputPanel, BorderLayout.CENTER);
+        entryCompletePanel.add(buttonPanel, BorderLayout.SOUTH);
+
+        // Panel norte
+        JPanel northPanel = new JPanel(new BorderLayout());
+        northPanel.add(topPanel, BorderLayout.NORTH);
+        northPanel.add(searchPanel, BorderLayout.CENTER);
+        northPanel.add(entryCompletePanel, BorderLayout.SOUTH);
+
         // Botón de volver
         JPanel lowPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         lowPanel.setBackground(new Color(245, 245, 245));
@@ -180,6 +197,7 @@ public class UsuariosFrame extends JFrame {
     
     
     private void cargarUsuarios() {
+        buscarField.setText("");
         tableModel.setRowCount(0);
         List<Usuario> usuarios = usuarioDAO.obtenerTodos();
 
@@ -248,10 +266,14 @@ public class UsuariosFrame extends JFrame {
                 JOptionPane.YES_NO_OPTION);
 
         if (confirm == JOptionPane.YES_OPTION) {
-            usuarioDAO.eliminar(usuarioSeleccionado.getUsuarioId());
-            limpiar();
-            cargarUsuarios();
-            JOptionPane.showMessageDialog(this, "Usuario eliminado exitosamente", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+            String error = usuarioDAO.eliminar(usuarioSeleccionado.getUsuarioId());
+            if (error == null) {
+                limpiar();
+                cargarUsuarios();
+                JOptionPane.showMessageDialog(this, "Usuario eliminado exitosamente", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this, error, "Error al eliminar usuario", JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
 
@@ -266,6 +288,11 @@ public class UsuariosFrame extends JFrame {
         tableModel.setRowCount(0);
         List<Usuario> usuarios = usuarioDAO.buscarPorNombre(nombre);
 
+        if (usuarios.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No se encontraron usuarios con ese nombre", "Búsqueda", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
         for (Usuario usuario : usuarios) {
             Object[] row = {
                     usuario.getUsuarioId(),
@@ -275,6 +302,8 @@ public class UsuariosFrame extends JFrame {
             };
             tableModel.addRow(row);
         }
+        
+        JOptionPane.showMessageDialog(this, "Se encontraron " + usuarios.size() + " resultado(s)", "Búsqueda", JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void seleccionarFila() {
@@ -289,6 +318,7 @@ public class UsuariosFrame extends JFrame {
             usuarioSeleccionado = new Usuario(nombre, correo, telefono);
             usuarioSeleccionado.setUsuarioId(id);
 
+            idField.setText(String.valueOf(id));
             nombreField.setText(nombre);
             correoField.setText(correo);
             telefonoField.setText(telefono);
@@ -296,6 +326,7 @@ public class UsuariosFrame extends JFrame {
     }
 
     private void limpiar() {
+        idField.setText("");
         nombreField.setText("");
         correoField.setText("");
         telefonoField.setText("");

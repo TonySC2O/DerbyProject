@@ -8,10 +8,7 @@ package dao;
 import database.ConexionDB;
 import model.Libro;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -80,7 +77,7 @@ public class LibroDAO {
     }
 
     // Eliminar libro
-    public void eliminar(int libroId) {
+    public String eliminar(int libroId) {
         String sql = "DELETE FROM Libros WHERE libro_id = ?";
 
         try (
@@ -90,10 +87,19 @@ public class LibroDAO {
             ps.setInt(1, libroId);
             ps.executeUpdate();
             System.out.println("Libro eliminado con ID: " + libroId);
+            return null; // Éxito
 
-        } catch (Exception e) {
+        } catch (SQLException e) {
+            // Detectar violación de constraint (SQLState 23503 = Foreign Key Constraint Violation)
+            if ("23503".equals(e.getSQLState())) {
+                String errorMsg = "No se puede eliminar el libro porque está asociado a un préstamo.";
+                System.out.println("[FK_ERROR] " + errorMsg);
+                return errorMsg;
+            }
+            
             System.out.println("Error al eliminar libro: " + e.getMessage());
             e.printStackTrace();
+            return "Error al eliminar: " + e.getMessage();
         }
     }
 
@@ -130,7 +136,7 @@ public class LibroDAO {
     // Obtener todos los libros
     public List<Libro> obtenerTodos() {
         List<Libro> libros = new ArrayList<>();
-        String sql = "SELECT * FROM Libros ORDER BY titulo";
+        String sql = "SELECT * FROM Libros ORDER BY libro_id ASC";
 
         try (
                 Connection conn = ConexionDB.conectar();
@@ -157,16 +163,16 @@ public class LibroDAO {
         return libros;
     }
 
-    // Buscar libro por título
+    // Buscar libro por título (match exacto)
     public List<Libro> buscarPorTitulo(String titulo) {
         List<Libro> libros = new ArrayList<>();
-        String sql = "SELECT * FROM Libros WHERE UPPER(titulo) LIKE UPPER(?) ORDER BY titulo";
+        String sql = "SELECT * FROM Libros WHERE UPPER(titulo) = UPPER(?) ORDER BY libro_id ASC";
 
         try (
                 Connection conn = ConexionDB.conectar();
                 PreparedStatement ps = conn.prepareStatement(sql)
         ) {
-            ps.setString(1, "%" + titulo + "%");
+            ps.setString(1, titulo);
             ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
